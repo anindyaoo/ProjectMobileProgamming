@@ -1,0 +1,17 @@
+import 'package:flutter/material.dart';
+
+class ReportPage extends StatelessWidget {
+  const ReportPage({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return const Scaffold(
+      body: Center(
+        child: Text(
+          'HALAMAN LAPORAN',
+          style: TextStyle(fontSize: 20),
+        ),
+      ),
+    );
+  }
+}
