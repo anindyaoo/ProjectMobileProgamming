@@ -1,24 +1,31 @@
 import 'package:flutter/material.dart';
 import '../widgets/bottom_nav.dart';
-import 'home_page.dart';
-import 'transaction_page.dart';
-import 'report_page.dart';
-import 'profile_page.dart';
+import 'beranda_page.dart';
+import 'transaksi_page.dart';
+import 'laporan_page.dart';
+import 'profil_page.dart';
 
 class MainPage extends StatefulWidget {
-  const MainPage({super.key});
+  final int initialIndex;
+  const MainPage({super.key, this.initialIndex = 0});
 
   @override
   State<MainPage> createState() => _MainPageState();
 }
 
 class _MainPageState extends State<MainPage> {
-  int _currentIndex = 0;
+  late int _currentIndex;
+
+  @override
+  void initState() {
+    super.initState();
+    _currentIndex = widget.initialIndex;
+  }
 
   final List<Widget> _pages = const [
     HomePage(),
     TransactionPage(),
-    ReportPage(),
+    HalamanLaporanPage(),
     ProfilePage(),
   ];
 
