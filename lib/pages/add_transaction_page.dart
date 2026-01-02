@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:get/get.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:personal_finance/utils/custom_snackbar.dart';
 import '../model/transaction_model.dart';
 import '../utils/currency_formatter.dart';
 import '../controllers/transaction_controller.dart';
@@ -19,8 +21,6 @@ class _AddTransactionPageState extends State<AddTransactionPage> {
   // Use Controller instead of Service directly
   final TransactionController transactionController =
       Get.find<TransactionController>();
-  final FirestoreService _firestoreService =
-      FirestoreService(); // Keep for categories for now or move to controller
 
   final amountController = TextEditingController();
   final noteController = TextEditingController();
@@ -80,7 +80,7 @@ class _AddTransactionPageState extends State<AddTransactionPage> {
               onPressed: () {
                 final newCategory = newCategoryController.text.trim();
                 if (newCategory.isNotEmpty) {
-                  _firestoreService.addCategory(newCategory);
+                  transactionController.addCategory(newCategory);
                   setState(() {
                     selectedCategory = newCategory;
                   });
@@ -106,20 +106,26 @@ class _AddTransactionPageState extends State<AddTransactionPage> {
       amountController.text,
     );
 
-    if (amount <= 0 || selectedCategory == null) {
-      Get.snackbar(
-        'Error',
-        'Mohon lengkapi data',
-        backgroundColor: Colors.red,
-        colorText: Colors.white,
-        snackPosition: SnackPosition.TOP,
+    if (amount <= 0 ||
+        selectedCategory == null ||
+        !transactionController.categories.contains(selectedCategory)) {
+      CustomSnackbar.showWarning(
+        title: 'Perhatian',
+        message: 'Mohon lengkapi data transaksi dengan benar',
       );
       return;
     }
 
     final note = noteController.text;
 
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) {
+      CustomSnackbar.showError(title: 'Error', message: 'Anda belum login');
+      return;
+    }
+
     final newTransaction = TransactionModel(
+      userId: user.uid,
       type: selectedType,
       amount: amount,
       category: selectedCategory!,

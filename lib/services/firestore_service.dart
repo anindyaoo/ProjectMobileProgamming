@@ -1,0 +1,71 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+import '../model/transaction_model.dart';
+
+// Abstraction: Abstract base class defining the contract
+abstract class TransactionRepository {
+  Future<void> addCategory(String categoryName);
+  Stream<List<String>> getCategories();
+  Future<void> addTransaction(TransactionModel transaction);
+  Stream<List<TransactionModel>> getTransactions(String userId);
+  Future<void> deleteTransaction(String id);
+  Future<void> updateTransaction(String id, TransactionModel transaction);
+}
+
+// Inheritance & Polymorphism: Implementing the interface
+class FirestoreService implements TransactionRepository {
+  // Encapsulation: Private fields
+  final CollectionReference _transactions = FirebaseFirestore.instance
+      .collection('transactions');
+  final CollectionReference _categories = FirebaseFirestore.instance.collection(
+    'categories',
+  );
+
+  @override
+  Future<void> addCategory(String categoryName) {
+    return _categories.add({'name': categoryName});
+  }
+
+  @override
+  Stream<List<String>> getCategories() {
+    return _categories.orderBy('name').snapshots().map((snapshot) {
+      return snapshot.docs.map((doc) {
+        return (doc.data() as Map<String, dynamic>)['name'] as String;
+      }).toList();
+    });
+  }
+
+  @override
+  Future<void> addTransaction(TransactionModel transaction) {
+    return _transactions.add(transaction.toMap());
+  }
+
+  @override
+  Stream<List<TransactionModel>> getTransactions(String userId) {
+    return _transactions
+        .where('userId', isEqualTo: userId)
+        .snapshots()
+        .map((snapshot) {
+      final transactions = snapshot.docs.map((doc) {
+        return TransactionModel.fromMap(
+          doc.data() as Map<String, dynamic>,
+          doc.id,
+        );
+      }).toList();
+
+      // Sort by date descending (Client-side sorting to avoid Firestore Index requirement)
+      transactions.sort((a, b) => b.date.compareTo(a.date));
+
+      return transactions;
+    });
+  }
+
+  @override
+  Future<void> deleteTransaction(String id) {
+    return _transactions.doc(id).delete();
+  }
+
+  @override
+  Future<void> updateTransaction(String id, TransactionModel transaction) {
+    return _transactions.doc(id).update(transaction.toMap());
+  }
+}
