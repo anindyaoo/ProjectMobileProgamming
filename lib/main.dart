@@ -1,10 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:get/get.dart';
-import 'controllers/auth_controller.dart';
-import 'controllers/transaction_controller.dart';
-import 'pages/login_page.dart';
-import 'services/notification_service.dart';
+import 'pages/main_page.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -20,11 +17,6 @@ void main() async {
     ),
   );
 
-  // Initialize Services & Controllers
-  Get.put(NotificationService());
-  Get.put(AuthController());
-  Get.put(TransactionController());
-
   runApp(const MyApp());
 }
 
@@ -36,7 +28,7 @@ class MyApp extends StatelessWidget {
     return GetMaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'Personal Finance',
-      home: const LoginPage(),
+      home: const MainPage(),
     );
   }
 }
