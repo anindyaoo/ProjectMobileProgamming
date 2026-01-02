@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 
 class TransactionModel {
   final String? id;
+  final String userId;
   final String note;
   final double amount;
   final String category;
@@ -10,6 +11,7 @@ class TransactionModel {
 
   TransactionModel({
     this.id,
+    required this.userId,
     this.note = '',
     required this.amount,
     required this.category,
@@ -21,6 +23,7 @@ class TransactionModel {
   factory TransactionModel.fromMap(Map<String, dynamic> map, String docId) {
     return TransactionModel(
       id: docId,
+      userId: map['userId'] ?? '',
       note: map['note'] ?? map['title'] ?? '', // Fallback to title for old data
       amount: (map['amount'] ?? 0).toDouble(),
       category: map['category'] ?? 'Lainnya',
@@ -32,6 +35,7 @@ class TransactionModel {
   // Konversi dari Model ke Firestore Map
   Map<String, dynamic> toMap() {
     return {
+      'userId': userId,
       'note': note,
       'amount': amount,
       'category': category,
