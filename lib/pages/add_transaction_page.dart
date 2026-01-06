@@ -18,7 +18,6 @@ class AddTransactionPage extends StatefulWidget {
 }
 
 class _AddTransactionPageState extends State<AddTransactionPage> {
-  // Use Controller instead of Service directly
   final TransactionController transactionController =
       Get.find<TransactionController>();
 
@@ -62,7 +61,7 @@ class _AddTransactionPageState extends State<AddTransactionPage> {
       context: context,
       builder: (context) {
         return AlertDialog(
-          title: const Text('Tambah Kategori'),
+          title: Text('Tambah Kategori ($selectedType)'),
           content: TextField(
             controller: newCategoryController,
             decoration: const InputDecoration(
@@ -80,7 +79,7 @@ class _AddTransactionPageState extends State<AddTransactionPage> {
               onPressed: () {
                 final newCategory = newCategoryController.text.trim();
                 if (newCategory.isNotEmpty) {
-                  transactionController.addCategory(newCategory);
+                  transactionController.addCategory(newCategory, selectedType);
                   setState(() {
                     selectedCategory = newCategory;
                   });
@@ -106,9 +105,13 @@ class _AddTransactionPageState extends State<AddTransactionPage> {
       amountController.text,
     );
 
+    final availableCategories = transactionController.getCategoriesByType(
+      selectedType,
+    );
+
     if (amount <= 0 ||
         selectedCategory == null ||
-        !transactionController.categories.contains(selectedCategory)) {
+        !availableCategories.contains(selectedCategory)) {
       CustomSnackbar.showWarning(
         title: 'Perhatian',
         message: 'Mohon lengkapi data transaksi dengan benar',
@@ -133,18 +136,51 @@ class _AddTransactionPageState extends State<AddTransactionPage> {
       note: note,
     );
 
-    // Use Controller to Save/Update
     if (widget.transactionToEdit != null) {
-      await transactionController.updateTransaction(
-        widget.transactionToEdit!.id!,
-        newTransaction,
+      Get.defaultDialog(
+        title: 'Konfirmasi Update',
+        middleText:
+            'Apakah Anda yakin ingin menyimpan perubahan transaksi ini?',
+        titlePadding: const EdgeInsets.only(top: 20),
+        contentPadding: const EdgeInsets.all(20),
+        radius: 16,
+        confirm: ElevatedButton(
+          onPressed: () async {
+            Get.back(); // Close dialog
+            await transactionController.updateTransaction(
+              widget.transactionToEdit!.id!,
+              newTransaction,
+            );
+            Get.offAll(() => const MainPage(initialIndex: 1));
+          },
+          style: ElevatedButton.styleFrom(
+            backgroundColor: const Color(0xFF355C9A),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+          ),
+          child: const Text(
+            'Ya, Simpan',
+            style: TextStyle(color: Colors.white),
+          ),
+        ),
+        cancel: OutlinedButton(
+          onPressed: () => Get.back(),
+          style: OutlinedButton.styleFrom(
+            side: const BorderSide(color: Colors.grey),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+          ),
+          child: const Text('Batal', style: TextStyle(color: Colors.black87)),
+        ),
       );
     } else {
       await transactionController.addTransaction(newTransaction);
+      Get.offAll(() => const MainPage(initialIndex: 1));
     }
-
-    // Redirect to Transaction Tab
-    Get.offAll(() => const MainPage(initialIndex: 1));
   }
 
   @override
@@ -164,14 +200,13 @@ class _AddTransactionPageState extends State<AddTransactionPage> {
         backgroundColor: const Color(0xFF355C9A),
         iconTheme: const IconThemeData(color: Colors.white),
         elevation: 0,
-        automaticallyImplyLeading: true, // Show back button
+        automaticallyImplyLeading: true,
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            /// ===== TIPE TRANSAKSI =====
             const Text('Tipe', style: TextStyle(fontWeight: FontWeight.bold)),
             const SizedBox(height: 8),
             Container(
@@ -195,13 +230,16 @@ class _AddTransactionPageState extends State<AddTransactionPage> {
                       child: Text('Pemasukan'),
                     ),
                   ],
-                  onChanged: (value) => setState(() => selectedType = value!),
+                  onChanged: (value) {
+                    setState(() {
+                      selectedType = value!;
+                      selectedCategory = null;
+                    });
+                  },
                 ),
               ),
             ),
             const SizedBox(height: 16),
-
-            /// ===== NOMINAL =====
             const Text(
               'Nominal',
               style: TextStyle(fontWeight: FontWeight.bold),
@@ -232,8 +270,6 @@ class _AddTransactionPageState extends State<AddTransactionPage> {
               ),
             ),
             const SizedBox(height: 16),
-
-            /// ===== KATEGORI =====
             const Text(
               'Kategori',
               style: TextStyle(fontWeight: FontWeight.bold),
@@ -248,13 +284,10 @@ class _AddTransactionPageState extends State<AddTransactionPage> {
               ),
               child: DropdownButtonHideUnderline(
                 child: Obx(() {
-                  final categories = transactionController.categories;
+                  final categories = transactionController.getCategoriesByType(
+                    selectedType,
+                  );
 
-                  if (categories.isEmpty) {
-                    return const Center(child: Text('Belum ada kategori'));
-                  }
-
-                  // Ensure selectedCategory is in the list, otherwise null to prevent crash
                   String? currentValue = selectedCategory;
                   if (currentValue != null &&
                       !categories.contains(currentValue)) {
@@ -263,13 +296,22 @@ class _AddTransactionPageState extends State<AddTransactionPage> {
 
                   return DropdownButton<String>(
                     hint: const Text('Pilih Kategori'),
+                    disabledHint: const Text(
+                      'Belum ada kategori untuk tipe ini',
+                    ),
                     value: currentValue,
                     isExpanded: true,
-                    items: categories.map((cat) {
-                      return DropdownMenuItem(value: cat, child: Text(cat));
-                    }).toList(),
-                    onChanged: (value) =>
-                        setState(() => selectedCategory = value),
+                    items: categories.isEmpty
+                        ? null
+                        : categories.map((cat) {
+                            return DropdownMenuItem(
+                              value: cat,
+                              child: Text(cat),
+                            );
+                          }).toList(),
+                    onChanged: categories.isEmpty
+                        ? null
+                        : (value) => setState(() => selectedCategory = value),
                   );
                 }),
               ),
@@ -286,8 +328,6 @@ class _AddTransactionPageState extends State<AddTransactionPage> {
               ),
             ),
             const SizedBox(height: 16),
-
-            /// ===== TANGGAL =====
             const Text(
               'Tanggal',
               style: TextStyle(fontWeight: FontWeight.bold),
@@ -309,7 +349,7 @@ class _AddTransactionPageState extends State<AddTransactionPage> {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text(
-                      DateFormat('dd/MM/yyyy').format(selectedDate),
+                      DateFormat('d MMMM yyyy', 'id_ID').format(selectedDate),
                       style: const TextStyle(color: Colors.black87),
                     ),
                     const Icon(
@@ -322,8 +362,6 @@ class _AddTransactionPageState extends State<AddTransactionPage> {
               ),
             ),
             const SizedBox(height: 16),
-
-            /// ===== CATATAN =====
             const Text(
               'Catatan (Opsional)',
               style: TextStyle(fontWeight: FontWeight.bold),
@@ -350,10 +388,7 @@ class _AddTransactionPageState extends State<AddTransactionPage> {
                 ),
               ),
             ),
-
             const SizedBox(height: 32),
-
-            /// ===== TOMBOL SIMPAN =====
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(

@@ -1,13 +1,15 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../model/transaction_model.dart';
+import '../model/category_model.dart';
 
 // Abstraction: Abstract base class defining the contract
 abstract class TransactionRepository {
-  Future<void> addCategory(String categoryName);
-  Stream<List<String>> getCategories();
+  Future<void> addCategory(String categoryName, String type);
+  Stream<List<CategoryModel>> getCategories();
   Future<void> addTransaction(TransactionModel transaction);
   Stream<List<TransactionModel>> getTransactions(String userId);
   Future<void> deleteTransaction(String id);
+  Future<void> deleteAllTransactions(String userId);
   Future<void> updateTransaction(String id, TransactionModel transaction);
 }
 
@@ -21,15 +23,18 @@ class FirestoreService implements TransactionRepository {
   );
 
   @override
-  Future<void> addCategory(String categoryName) {
-    return _categories.add({'name': categoryName});
+  Future<void> addCategory(String categoryName, String type) {
+    return _categories.add({'name': categoryName, 'type': type});
   }
 
   @override
-  Stream<List<String>> getCategories() {
+  Stream<List<CategoryModel>> getCategories() {
     return _categories.orderBy('name').snapshots().map((snapshot) {
       return snapshot.docs.map((doc) {
-        return (doc.data() as Map<String, dynamic>)['name'] as String;
+        return CategoryModel.fromMap(
+          doc.data() as Map<String, dynamic>,
+          doc.id,
+        );
       }).toList();
     });
   }
@@ -41,10 +46,9 @@ class FirestoreService implements TransactionRepository {
 
   @override
   Stream<List<TransactionModel>> getTransactions(String userId) {
-    return _transactions
-        .where('userId', isEqualTo: userId)
-        .snapshots()
-        .map((snapshot) {
+    return _transactions.where('userId', isEqualTo: userId).snapshots().map((
+      snapshot,
+    ) {
       final transactions = snapshot.docs.map((doc) {
         return TransactionModel.fromMap(
           doc.data() as Map<String, dynamic>,
@@ -62,6 +66,18 @@ class FirestoreService implements TransactionRepository {
   @override
   Future<void> deleteTransaction(String id) {
     return _transactions.doc(id).delete();
+  }
+
+  @override
+  Future<void> deleteAllTransactions(String userId) async {
+    final batch = FirebaseFirestore.instance.batch();
+    var snapshots = await _transactions
+        .where('userId', isEqualTo: userId)
+        .get();
+    for (var doc in snapshots.docs) {
+      batch.delete(doc.reference);
+    }
+    await batch.commit();
   }
 
   @override

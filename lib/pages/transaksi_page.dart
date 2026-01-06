@@ -4,7 +4,6 @@ import 'package:get/get.dart';
 import 'package:personal_finance/controllers/transaction_controller.dart';
 import 'add_transaction_page.dart';
 import '../model/transaction_model.dart';
-import '../utils/currency_formatter.dart';
 
 class TransactionPage extends GetView<TransactionController> {
   const TransactionPage({super.key});
@@ -16,31 +15,43 @@ class TransactionPage extends GetView<TransactionController> {
       appBar: AppBar(
         title: const Text(
           'Daftar Transaksi',
-          style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
+          style: TextStyle(
+            fontSize: 20,
+            fontWeight: FontWeight.bold,
+            color: Colors.white,
+          ),
         ),
         backgroundColor: const Color(0xFF355C9A),
         elevation: 0,
+        centerTitle: false,
         automaticallyImplyLeading: false,
       ),
       body: Column(
         children: [
-          // Filter Tabs
           Container(
-            padding: const EdgeInsets.all(16),
-            color: Colors.white,
+            margin: const EdgeInsets.all(16),
+            padding: const EdgeInsets.all(4),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(12),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.05),
+                  blurRadius: 10,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
             child: Obx(
               () => Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 children: [
-                  _buildFilterButton('Semua'),
-                  _buildFilterButton('Hari Ini'),
-                  _buildFilterButton('Bulan Ini'),
+                  _buildFilterTab('Semua'),
+                  _buildFilterTab('Hari Ini'),
+                  _buildFilterTab('Bulan Ini'),
                 ],
               ),
             ),
           ),
-
-          // Transaction List
           Expanded(
             child: Obx(() {
               if (controller.isLoading.value) {
@@ -51,13 +62,22 @@ class TransactionPage extends GetView<TransactionController> {
 
               if (transactions.isEmpty) {
                 return const Center(
-                  child: Text('Tidak ada transaksi untuk periode ini'),
+                  child: Text(
+                    'Tidak ada transaksi',
+                    style: TextStyle(color: Colors.grey),
+                  ),
                 );
               }
 
-              return ListView.builder(
-                padding: const EdgeInsets.all(16),
+              return ListView.separated(
+                padding: const EdgeInsets.only(bottom: 16),
                 itemCount: transactions.length,
+                separatorBuilder: (context, index) => const Divider(
+                  height: 1,
+                  thickness: 0.5,
+                  indent: 16,
+                  endIndent: 16,
+                ),
                 itemBuilder: (context, index) {
                   final tx = transactions[index];
                   return _buildTransactionItem(tx);
@@ -70,23 +90,27 @@ class TransactionPage extends GetView<TransactionController> {
     );
   }
 
-  Widget _buildFilterButton(String text) {
+  Widget _buildFilterTab(String text) {
     final isSelected = controller.selectedFilter.value == text;
-    return GestureDetector(
-      onTap: () {
-        controller.updateFilter(text);
-      },
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        decoration: BoxDecoration(
-          color: isSelected ? const Color(0xFF355C9A) : Colors.grey.shade200,
-          borderRadius: BorderRadius.circular(20),
-        ),
-        child: Text(
-          text,
-          style: TextStyle(
-            color: isSelected ? Colors.white : Colors.black87,
-            fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+    return Expanded(
+      child: GestureDetector(
+        onTap: () {
+          controller.updateFilter(text);
+        },
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 10),
+          decoration: BoxDecoration(
+            color: isSelected ? const Color(0xFF355C9A) : Colors.transparent,
+            borderRadius: BorderRadius.circular(8),
+          ),
+          alignment: Alignment.center,
+          child: Text(
+            text,
+            style: TextStyle(
+              color: isSelected ? Colors.white : Colors.black87,
+              fontWeight: FontWeight.bold,
+              fontSize: 14,
+            ),
           ),
         ),
       ),
@@ -94,114 +118,118 @@ class TransactionPage extends GetView<TransactionController> {
   }
 
   Widget _buildTransactionItem(TransactionModel tx) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
+    final currencyFormatter = NumberFormat.currency(
+      locale: 'id_ID',
+      symbol: 'Rp ',
+      decimalDigits: 0,
+    );
+
+    return InkWell(
+      onTap: () {
+        Get.to(() => AddTransactionPage(transactionToEdit: tx));
+      },
+      child: Container(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: Colors.grey.shade200),
-      ),
-      child: Row(
-        children: [
-          /// ===== TRANSACTION INFO (LEFT) =====
-          Expanded(
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      DateFormat('d MMM yyyy').format(tx.date),
-                      style: const TextStyle(fontSize: 12, color: Colors.grey),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      tx.category,
-                      style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        child: Row(
+          children: [
+            Expanded(
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        DateFormat('d MMMM yyyy', 'id_ID').format(tx.date),
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.grey.shade600,
+                          fontWeight: FontWeight.w500,
+                        ),
                       ),
-                    ),
-                    if (tx.note.isNotEmpty) ...[
                       const SizedBox(height: 4),
                       Text(
-                        tx.note,
+                        tx.category,
                         style: const TextStyle(
-                          fontSize: 13,
-                          color: Colors.black54,
-                          fontStyle: FontStyle.italic,
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.black87,
                         ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ] else ...[
-                      const SizedBox(height: 4),
-                      const Text(
-                        '-',
-                        style: TextStyle(fontSize: 13, color: Colors.grey),
                       ),
                     ],
-                  ],
-                ),
-                Text(
-                  '${tx.type == 'Pemasukan' ? '+ ' : '- '}${CurrencyInputFormatter.formatAmount(tx.amount)}',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                    color: tx.type == 'Pemasukan' ? Colors.green : Colors.black,
                   ),
-                ),
-              ],
-            ),
-          ),
-
-          const SizedBox(width: 12),
-
-          /// ===== EDIT ICON (RIGHT) =====
-          Tooltip(
-            message: 'Edit Transaksi',
-            child: InkWell(
-              onTap: () {
-                Get.to(() => AddTransactionPage(transactionToEdit: tx));
-              },
-              borderRadius: BorderRadius.circular(20),
-              child: const Padding(
-                padding: EdgeInsets.all(4.0),
-                child: Icon(Icons.edit, size: 24, color: Color(0xFF355C9A)),
+                  Text(
+                    '${tx.type == 'Pemasukan' ? '+ ' : '- '}${currencyFormatter.format(tx.amount)}',
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.black87,
+                    ),
+                  ),
+                ],
               ),
             ),
-          ),
-
-          const SizedBox(width: 8),
-
-          /// ===== DELETE ICON (RIGHT) =====
-          Tooltip(
-            message: 'Hapus Transaksi',
-            child: InkWell(
-              onTap: () {
+            const SizedBox(width: 8),
+            IconButton(
+              icon: const Icon(Icons.delete_outline, color: Colors.red),
+              onPressed: () {
                 Get.defaultDialog(
                   title: 'Hapus Transaksi',
                   middleText:
                       'Apakah Anda yakin ingin menghapus transaksi ini?',
-                  textConfirm: 'Ya',
-                  textCancel: 'Batal',
-                  confirmTextColor: Colors.white,
-                  onConfirm: () {
-                    Get.find<TransactionController>().deleteTransaction(tx.id!);
-                    Get.back();
-                  },
+                  titlePadding: const EdgeInsets.only(top: 20),
+                  contentPadding: const EdgeInsets.all(20),
+                  radius: 16, // Rounded Dialog
+                  confirm: ElevatedButton(
+                    onPressed: () {
+                      if (tx.id != null) {
+                        controller.deleteTransaction(tx.id!);
+                      }
+                      Get.back();
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.red,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(
+                          12,
+                        ), // Rounded Button
+                      ),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 20,
+                        vertical: 10,
+                      ),
+                    ),
+                    child: const Text(
+                      'Hapus',
+                      style: TextStyle(color: Colors.white),
+                    ),
+                  ),
+                  cancel: OutlinedButton(
+                    onPressed: () => Get.back(),
+                    style: OutlinedButton.styleFrom(
+                      side: const BorderSide(color: Colors.grey),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(
+                          12,
+                        ), // Rounded Button
+                      ),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 20,
+                        vertical: 10,
+                      ),
+                    ),
+                    child: const Text(
+                      'Batal',
+                      style: TextStyle(color: Colors.black87),
+                    ),
+                  ),
                 );
               },
-              borderRadius: BorderRadius.circular(20),
-              child: const Padding(
-                padding: EdgeInsets.all(4.0),
-                child: Icon(Icons.delete, size: 24, color: Colors.red),
-              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

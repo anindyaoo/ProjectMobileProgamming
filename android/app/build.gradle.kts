@@ -9,7 +9,7 @@ plugins {
 }
 
 android {
-    namespace = "com.example.financial"
+    namespace = "com.example.personal_financial"
     compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
 
@@ -23,9 +23,9 @@ android {
     }
 
     defaultConfig {
-        applicationId = "com.example.financial"
+        applicationId = "com.example.personal_financial"
 
-        minSdk = 21
+        minSdk = flutter.minSdkVersion
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName

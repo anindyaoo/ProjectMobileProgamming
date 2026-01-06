@@ -1,8 +1,12 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:get/get.dart';
+import 'package:intl/intl.dart';
 import 'package:personal_finance/utils/custom_snackbar.dart';
 import '../model/transaction_model.dart';
+import '../model/category_model.dart';
 import '../services/firestore_service.dart';
+import 'package:printing/printing.dart';
+import '../utils/pdf_generator.dart';
 
 class TransactionController extends GetxController {
   // Dependency Injection (Polymorphism support via abstraction if needed)
@@ -10,9 +14,13 @@ class TransactionController extends GetxController {
 
   // Encapsulation: Observable state variables
   var transactions = <TransactionModel>[].obs;
-  var categories = <String>[].obs;
+  var categories = <CategoryModel>[].obs;
   var isLoading = true.obs;
   var selectedFilter = 'Semua'.obs; // 'Semua', 'Hari Ini', 'Bulan Ini'
+
+  // Report Filter State
+  var selectedReportMonth = DateTime.now().month.obs;
+  var selectedReportYear = DateTime.now().year.obs;
 
   // Computed properties (Getters)
   List<TransactionModel> get filteredTransactions {
@@ -64,6 +72,64 @@ class TransactionController extends GetxController {
     return income - expense;
   }
 
+  // Report Getters
+  List<TransactionModel> get reportTransactions {
+    final filtered = transactions.where((t) {
+      return t.date.year == selectedReportYear.value &&
+          t.date.month == selectedReportMonth.value;
+    }).toList();
+    // Sort by date descending
+    filtered.sort((a, b) => b.date.compareTo(a.date));
+    return filtered;
+  }
+
+  double get reportIncome {
+    return reportTransactions
+        .where((t) => t.type == 'Pemasukan')
+        .fold(0.0, (sum, t) => sum + t.amount);
+  }
+
+  double get reportExpense {
+    return reportTransactions
+        .where((t) => t.type == 'Pengeluaran')
+        .fold(0.0, (sum, t) => sum + t.amount);
+  }
+
+  double get reportBalance => reportIncome - reportExpense;
+
+  Future<void> downloadReportPdf() async {
+    isLoading.value = true;
+    try {
+      final uid = FirebaseAuth.instance.currentUser?.uid;
+      if (uid == null) throw Exception('User not logged in');
+
+      final bytes = await PdfGenerator.generatePdf(
+        month: selectedReportMonth.value,
+        year: selectedReportYear.value,
+        totalIncome: reportIncome,
+        totalExpense: reportExpense,
+        balance: reportBalance,
+        transactions: reportTransactions,
+      );
+
+      final monthName = DateFormat(
+        'MMMM',
+        'id_ID',
+      ).format(DateTime(selectedReportYear.value, selectedReportMonth.value));
+      final fileName =
+          'Laporan Keuangan Bulan $monthName ${selectedReportYear.value} MyFinance.pdf';
+
+      await Printing.sharePdf(bytes: bytes, filename: fileName);
+    } catch (e) {
+      CustomSnackbar.showError(
+        title: 'Error',
+        message: 'Gagal mengunduh PDF: $e',
+      );
+    } finally {
+      isLoading.value = false;
+    }
+  }
+
   @override
   void onInit() {
     super.onInit();
@@ -84,9 +150,17 @@ class TransactionController extends GetxController {
     selectedFilter.value = filter;
   }
 
-  Future<void> addCategory(String categoryName) async {
+  void updateReportMonth(int month) {
+    selectedReportMonth.value = month;
+  }
+
+  void updateReportYear(int year) {
+    selectedReportYear.value = year;
+  }
+
+  Future<void> addCategory(String categoryName, String type) async {
     try {
-      await _repository.addCategory(categoryName);
+      await _repository.addCategory(categoryName, type);
       CustomSnackbar.showSuccess(
         title: 'Sukses',
         message: 'Kategori berhasil ditambahkan',
@@ -97,6 +171,10 @@ class TransactionController extends GetxController {
         message: 'Gagal menambahkan kategori: $e',
       );
     }
+  }
+
+  List<String> getCategoriesByType(String type) {
+    return categories.where((c) => c.type == type).map((c) => c.name).toList();
   }
 
   Future<void> addTransaction(TransactionModel transaction) async {
@@ -143,6 +221,24 @@ class TransactionController extends GetxController {
       CustomSnackbar.showError(
         title: 'Error',
         message: 'Gagal menghapus transaksi: $e',
+      );
+    }
+  }
+
+  Future<void> deleteAllTransactions() async {
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user != null) {
+        await _repository.deleteAllTransactions(user.uid);
+        CustomSnackbar.showSuccess(
+          title: 'Sukses',
+          message: 'Semua data transaksi berhasil dihapus',
+        );
+      }
+    } catch (e) {
+      CustomSnackbar.showError(
+        title: 'Error',
+        message: 'Gagal menghapus data transaksi: $e',
       );
     }
   }
