@@ -11,6 +11,8 @@ abstract class TransactionRepository {
   Future<void> deleteTransaction(String id);
   Future<void> deleteAllTransactions(String userId);
   Future<void> updateTransaction(String id, TransactionModel transaction);
+  Future<void> deleteCategory(String id);
+  Future<void> updateCategory(String id, String name, String type);
 }
 
 // Inheritance & Polymorphism: Implementing the interface
@@ -25,6 +27,16 @@ class FirestoreService implements TransactionRepository {
   @override
   Future<void> addCategory(String categoryName, String type) {
     return _categories.add({'name': categoryName, 'type': type});
+  }
+
+  @override
+  Future<void> deleteCategory(String id) {
+    return _categories.doc(id).delete();
+  }
+
+  @override
+  Future<void> updateCategory(String id, String name, String type) {
+    return _categories.doc(id).update({'name': name, 'type': type});
   }
 
   @override

@@ -6,7 +6,8 @@ import 'package:personal_finance/utils/custom_snackbar.dart';
 import '../model/transaction_model.dart';
 import '../utils/currency_formatter.dart';
 import '../controllers/transaction_controller.dart';
-import 'main_page.dart';
+import 'package:personal_finance/pages/category_list_page.dart';
+import 'package:personal_finance/pages/main_page.dart';
 
 class AddTransactionPage extends StatefulWidget {
   final TransactionModel? transactionToEdit;
@@ -61,6 +62,7 @@ class _AddTransactionPageState extends State<AddTransactionPage> {
       context: context,
       builder: (context) {
         return AlertDialog(
+          scrollable: true,
           title: Text('Tambah Kategori ($selectedType)'),
           content: TextField(
             controller: newCategoryController,
@@ -70,29 +72,47 @@ class _AddTransactionPageState extends State<AddTransactionPage> {
             ),
             textCapitalization: TextCapitalization.sentences,
           ),
+          actionsAlignment: MainAxisAlignment.spaceBetween,
           actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Batal'),
-            ),
-            ElevatedButton(
+            IconButton(
               onPressed: () {
-                final newCategory = newCategoryController.text.trim();
-                if (newCategory.isNotEmpty) {
-                  transactionController.addCategory(newCategory, selectedType);
-                  setState(() {
-                    selectedCategory = newCategory;
-                  });
-                  Navigator.pop(context);
-                }
+                Navigator.pop(context);
+                Get.to(() => const CategoryListPage());
               },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF355C9A),
-              ),
-              child: const Text(
-                'Simpan',
-                style: TextStyle(color: Colors.white),
-              ),
+              icon: const Icon(Icons.category, color: Color(0xFF355C9A)),
+              tooltip: 'Kelola Kategori',
+            ),
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text('Batal'),
+                ),
+                const SizedBox(width: 8),
+                ElevatedButton(
+                  onPressed: () {
+                    final newCategory = newCategoryController.text.trim();
+                    if (newCategory.isNotEmpty) {
+                      transactionController.addCategory(
+                        newCategory,
+                        selectedType,
+                      );
+                      setState(() {
+                        selectedCategory = newCategory;
+                      });
+                      Navigator.pop(context);
+                    }
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF355C9A),
+                  ),
+                  child: const Text(
+                    'Simpan',
+                    style: TextStyle(color: Colors.white),
+                  ),
+                ),
+              ],
             ),
           ],
         );

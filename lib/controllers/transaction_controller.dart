@@ -227,9 +227,9 @@ class TransactionController extends GetxController {
 
   Future<void> deleteAllTransactions() async {
     try {
-      final user = FirebaseAuth.instance.currentUser;
-      if (user != null) {
-        await _repository.deleteAllTransactions(user.uid);
+      final uid = FirebaseAuth.instance.currentUser?.uid;
+      if (uid != null) {
+        await _repository.deleteAllTransactions(uid);
         CustomSnackbar.showSuccess(
           title: 'Sukses',
           message: 'Semua data transaksi berhasil dihapus',

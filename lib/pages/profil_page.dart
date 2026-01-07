@@ -8,6 +8,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:personal_finance/controllers/auth_controller.dart';
 import 'package:personal_finance/controllers/profile_controller.dart';
 import 'package:personal_finance/controllers/transaction_controller.dart';
+import 'package:personal_finance/pages/category_list_page.dart';
 
 class ProfilePage extends StatelessWidget {
   const ProfilePage({super.key});
@@ -73,15 +74,15 @@ class ProfilePage extends StatelessWidget {
                         backgroundImage: imageProvider,
                         child: imagePath.isEmpty
                             ? Text(
-                          username.isNotEmpty
-                              ? username[0].toUpperCase()
-                              : '?',
-                          style: const TextStyle(
-                            fontSize: 40,
-                            color: Colors.white,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        )
+                                username.isNotEmpty
+                                    ? username[0].toUpperCase()
+                                    : '?',
+                                style: const TextStyle(
+                                  fontSize: 40,
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              )
                             : null,
                       ),
                     ),
@@ -98,8 +99,7 @@ class ProfilePage extends StatelessWidget {
                   const SizedBox(height: 4),
                   Text(
                     email,
-                    style: TextStyle(
-                        fontSize: 14, color: Colors.grey.shade400),
+                    style: TextStyle(fontSize: 14, color: Colors.grey.shade400),
                   ),
                 ],
               ),
@@ -140,17 +140,22 @@ class ProfilePage extends StatelessWidget {
                 ),
               );
             }),
+
+            _buildProfileItem(Icons.category, 'Kelola Kategori', () {
+              Get.to(() => const CategoryListPage());
+            }),
+
             _buildProfileItem(Icons.delete_forever, 'Reset Data', () {
               Get.defaultDialog(
                 title: 'Reset Data',
                 middleText:
-                'Apakah Anda yakin ingin menghapus SEMUA data transaksi? Tindakan ini tidak dapat dibatalkan.',
+                    'Apakah Anda yakin ingin menghapus SEMUA data transaksi? Tindakan ini tidak dapat dibatalkan.',
                 titlePadding: const EdgeInsets.only(top: 20),
                 contentPadding: const EdgeInsets.all(20),
                 radius: 16,
                 confirm: ElevatedButton(
                   onPressed: () {
-                    transactionController.deleteTransaction("");
+                    transactionController.deleteAllTransactions();
                     Get.back();
                   },
                   style: ElevatedButton.styleFrom(
